@@ -73,7 +73,7 @@ export class MatrixAction {
 
     constructor(
         public readonly type: string,
-        public text: string,
+        public text: string|null = null,
         public htmlText: string|null = null,
         public readonly ts: number = 0
         ) {
@@ -87,6 +87,9 @@ export class MatrixAction {
     }
 
     public async formatMentions(nickUserIdMap: {[nick: string]: string}, intent: Intent) {
+        if (!this.text) {
+            return;
+        }
         const regexString = `(${Object.keys(nickUserIdMap).map((value) => escapeStringRegexp(value)).join("|")})`;
         const usersRegex = MentionRegex(regexString);
         const matched = new Set(); // lowercased nicknames we have matched already.

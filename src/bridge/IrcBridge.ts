@@ -2,7 +2,7 @@ import Bluebird from "bluebird";
 import extend from "extend";
 import * as promiseutil from "../promiseutil";
 import IrcHandler from "./IrcHandler";
-import MatrixHandler from "./MatrixHandler";
+import { MatrixHandler } from "./MatrixHandler";
 import { MemberListSyncer } from "./MemberListSyncer";
 import { IdentGenerator } from "../irc/IdentGenerator";
 import { Ipv6Generator } from "../irc/Ipv6Generator";
@@ -46,7 +46,6 @@ const DELAY_FETCH_ROOM_LIST_MS = 3 * 1000;
 const DEAD_TIME_MS = 5 * 60 * 1000;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type MatrixHandler = any;
 type IrcHandler = any;
 type Provisioner = any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -60,7 +59,6 @@ export class IrcBridge {
     public readonly publicitySyncer: PublicitySyncer;
     private clientPool: ClientPool;
     private ircServers: IrcServer[] = [];
-    private domain: string|null = null;
     private appServiceUserId: string|null = null;
     private memberListSyncers: {[domain: string]: MemberListSyncer} = {};
     private joinedRoomList: string[] = [];
@@ -318,6 +316,10 @@ export class IrcBridge {
 
     public getProvisioner() {
         return this.provisioner;
+    }
+
+    public get domain() {
+        return this.config.homeserver.domain;
     }
 
     public createBridgedClient(ircClientConfig: IrcClientConfig, matrixUser: MatrixUser|null, isBot: boolean) {
@@ -594,7 +596,7 @@ export class IrcBridge {
         await promiseutil.allSettled(promises);
     }
 
-    public sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction) {
+    public async sendMatrixAction(room: MatrixRoom, from: MatrixUser, action: MatrixAction) {
         const intent = this.bridge.getIntent(from.userId);
         if (action.msgType) {
             if (action.htmlText) {
@@ -615,7 +617,7 @@ export class IrcBridge {
         else if (action.type === "topic") {
             return intent.setRoomTopic(room.getId(), action.text);
         }
-        return Bluebird.reject(new Error("Unknown action: " + action.type));
+        new Error("Unknown action: " + action.type);
     }
 
     public uploadTextFile(fileName: string, plaintext: string) {
@@ -991,7 +993,7 @@ export class IrcBridge {
         await client.leaveChannel(ircRoom.channel);
     }
 
-    public async getBridgedClient(server: IrcServer, userId: string, displayName: string) {
+    public async getBridgedClient(server: IrcServer, userId: string, displayName?: string) {
         let bridgedClient = this.getIrcUserFromCache(server, userId);
         if (bridgedClient) {
             log.debug("Returning cached bridged client %s", userId);
@@ -999,7 +1001,9 @@ export class IrcBridge {
         }
 
         const mxUser = new MatrixUser(userId);
-        mxUser.setDisplayName(displayName);
+        if (displayName) {
+            mxUser.setDisplayName(displayName);
+        }
 
         // check the database for stored config information for this irc client
         // including username, custom nick, nickserv password, etc.

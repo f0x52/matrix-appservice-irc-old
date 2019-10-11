@@ -173,6 +173,8 @@ declare module 'matrix-appservice-bridge' {
     }
 
     export class Intent {
+        createRoom(opts: unknown): Promise<{room_id: string;}>;
+        roomState(room_id: string): Promise<any[]>;
         leave(roomId: string): Promise<void>;
         setPowerLevel(roomId: string, userId: string, level: number | undefined): Promise<void>;
         getStateEvent(roomId: string, type: string): Promise<any>;
@@ -231,6 +233,11 @@ declare module 'matrix-appservice-bridge' {
         getIntentFromLocalpart(localpart: string): Intent;
         run(port: number): void;
         registerBridgeGauges(cb: () => void): void;
+        getClientFactory(): ClientFactory;
+    }
+
+    export class ClientFactory {
+        getClientAs(): JsClient;
     }
 
     export class RequestFactory {
@@ -255,5 +262,12 @@ declare module 'matrix-appservice-bridge' {
 
     export class Logging {
         static configure(opts: {console: string}): void;
+    }
+
+    export class StateLookup {
+            constructor(opts: {})
+            onEvent(event: unknown): void;
+            trackRoom(roomId: string): Promise<void>;
+            getState(roomId: string, type: string): any[];
     }
 }
